@@ -1,0 +1,30 @@
+buildscript {
+    ext {
+        buildToolsVersion = "36.0.0"
+        minSdkVersion = 24
+        compileSdkVersion = 36
+        targetSdkVersion = 36
+        ndkVersion = "27.1.12297006"
+        kotlinVersion = "2.1.20"
+
+        // Google Play Services versions (align across libraries)
+        // react-native-geolocation-service default: 18.0.0
+        // react-native-maps default location: 21.3.0
+        // Yahan hum sabko ek hi version par laa rahe hain taaki
+        // SettingsClient class/interface mismatch (IncompatibleClassChangeError)
+        // na aaye.
+        googlePlayServicesVersion = "21.3.0"
+        googlePlayServicesLocationVersion = "21.3.0"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"

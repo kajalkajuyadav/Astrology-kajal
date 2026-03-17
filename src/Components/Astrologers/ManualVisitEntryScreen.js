@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,219 +10,266 @@ import {
   ToastAndroid,
   Platform,
   KeyboardAvoidingView,
+  Image,
+  SafeAreaView
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { BaseUrl } from "../../url/env";
+import { launchCamera } from "react-native-image-picker";
+import Geolocation from "react-native-geolocation-service";
+import { BaseUrl } from "../../url/env"; 
 
 const ManualVisitEntryScreen = () => {
-  const [visitMaqsad, setVisitMaqsad] = useState("Payment Collection");
-  const [clientName, setClientName] = useState("");
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMode, setPaymentMode] = useState(null);
-
-  const [manualDate, setManualDate] = useState(""); 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
+  const [visitType, setVisitType] = useState("Payment Collection");
+  const [dealerName, setDealerName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [paymentMode, setPaymentMode] = useState("");
+  const [description, setDescription] = useState("");
+  const [todayDate, setTodayDate] = useState("");
+  const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Format Date to DD-MM-YYYY
-  const formatDate = (date) => {
-    const d = new Date(date);
+  useEffect(() => {
+    const d = new Date();
     const day = (`0${d.getDate()}`).slice(-2);
     const month = (`0${d.getMonth() + 1}`).slice(-2);
     const year = d.getFullYear();
-    return `${day}-${month}-${year}`;
+    setTodayDate(`${day}-${month}-${year}`);
+  }, []);
+
+  /* CAMERA */
+  const openCamera = () => {
+    launchCamera(
+      { mediaType: "photo", cameraType: "back", quality: 0.7, saveToPhotos: false },
+      (res) => {
+        if (res.didCancel) return;
+        if (res.errorCode) {
+          ToastAndroid.show("Camera error", ToastAndroid.SHORT);
+          return;
+        }
+        setImage(res.assets[0]);
+      }
+    );
   };
 
-  const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      const formatted = formatDate(selectedDate);
-      setManualDate(formatted);
-    }
+  /* GET LOCATION */
+  const getLocation = async () => {
+    return new Promise((resolve, reject) => {
+      console.log("🔍 Getting location...");
+      Geolocation.getCurrentPosition(
+        (position) => {
+          console.log("✅ Location found:", position);
+          const { latitude, longitude } = position.coords;
+          const deviceTimestamp = new Date().toISOString();
+          console.log("📍 Lat:", latitude, "Lng:", longitude, "Time:", deviceTimestamp);
+          resolve({ latitude, longitude, deviceTimestamp });
+        },
+        (error) => {
+          console.log("❌ Location error:", error);
+          ToastAndroid.show("Location permission denied", ToastAndroid.SHORT);
+          reject(error);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      );
+    });
   };
 
+  /* SAVE */
   const handleSaveVisit = async () => {
-    if (!clientName.trim()) {
-      return ToastAndroid.show("Please enter client name", ToastAndroid.SHORT);
-    }
+    if (!dealerName.trim()) {
+  return ToastAndroid.show("Enter dealer name", ToastAndroid.SHORT);
+}
 
-    if (!manualDate.trim()) {
-      return ToastAndroid.show("Please select a date", ToastAndroid.SHORT);
-    }
-
-    if (visitMaqsad !== "Other") {
-      if (!paymentAmount || !paymentMode) {
-        return ToastAndroid.show("Amount and payment mode are required", ToastAndroid.SHORT);
-      }
-
-      if (Number(paymentAmount) <= 0) {
-        return ToastAndroid.show("Amount must be greater than 0", ToastAndroid.SHORT);
-      }
-    }
+if (!image) {
+  return ToastAndroid.show("Capture photo", ToastAndroid.SHORT);
+}
 
     setLoading(true);
 
     try {
+      console.log("💾 Starting save visit...");
+      // Get location
+      const location = await getLocation();
+      const { latitude, longitude, deviceTimestamp } = location;
+      console.log("� Location data:", { latitude, longitude, deviceTimestamp });
+
       const token = await AsyncStorage.getItem("authToken");
+      const purpose = visitType === "Payment Collection" ? "PAYMENT" : "ORDER";
+      
+      console.log("📝 Building FormData:");
+      console.log("  - purpose:", purpose);
+      console.log("  - dealerName:", dealerName);
+      console.log("  - amount:", amount || "");
+      console.log("  - paymentMode:", paymentMode || "");
+      console.log("  - description:", description || "");
+      console.log("  - latitude:", String(latitude));
+      console.log("  - longitude:", String(longitude));
+      console.log("  - deviceTimestamp:", String(deviceTimestamp));
+      
+      const formData = new FormData();
+      formData.append("purpose", purpose);
+      formData.append("dealerName", dealerName);
+      formData.append("amount", amount || "");
+      formData.append("paymentMode", paymentMode || "");
+      formData.append("description", description || "");
+      formData.append("latitude", String(latitude));
+      formData.append("longitude", String(longitude));
+      formData.append("deviceTimestamp", String(deviceTimestamp));
 
-      const purposeValue =
-        visitMaqsad === "Payment Collection"
-          ? "PAYMENT"
-          : visitMaqsad === "Order Visit"
-          ? "ORDER"
-          : "OTHER";
-
-      const statusValue = purposeValue === "PAYMENT" ? "ACTIVE" : "INACTIVE";
-
-      const bodyData = {
-        purpose: purposeValue,
-        clientName,
-        date: manualDate,
-        amount: visitMaqsad !== "Other" ? Number(paymentAmount) : null,
-        paymentMode: visitMaqsad !== "Other" ? paymentMode : null,
-        status: statusValue,
+      const imageData = {
+        uri: Platform.OS === "android" ? image.uri : image.uri.replace("file://", ""),
+        name: image.fileName || "visit.jpg",
+        type: image.type || "image/jpeg",
       };
 
+      formData.append("asset", imageData);
+      console.log("🖼️  Image appended:", imageData.name);
+
+      console.log("🌐 Sending POST request to:", `${BaseUrl}/visits`);
+      console.log("🔑 Auth token present:", !!token);
+      
       const res = await fetch(`${BaseUrl}/visits`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(bodyData),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
 
+      console.log("📊 Response status:", res.status);
       const data = await res.json();
+      console.log("📨 API Response:", JSON.stringify(data, null, 2));
       setLoading(false);
 
-      if (data?.success === true) {
-        ToastAndroid.show("Visit saved successfully!", ToastAndroid.SHORT);
-
-        setClientName("");
-        setPaymentAmount("");
-        setPaymentMode(null);
-        setManualDate("");
-        setVisitMaqsad("Payment Collection");
+      if (data?.success) {
+        console.log("✅ Visit saved successfully!");
+        ToastAndroid.show("Visit saved", ToastAndroid.SHORT);
+        setDealerName("");
+        setAmount("");
+        setPaymentMode("");
+        setDescription("");
+        setImage(null);
       } else {
-        ToastAndroid.show(data?.message || "Something went wrong!", ToastAndroid.SHORT);
+        console.log("❌ Visit save failed:", data?.message);
+        ToastAndroid.show(data?.message || "Error", ToastAndroid.SHORT);
       }
-    } catch (error) {
+    } catch (e) {
+      console.log("⚠️ Catch error:", e);
       setLoading(false);
-      ToastAndroid.show("Network error!", ToastAndroid.SHORT);
+      ToastAndroid.show("Network error", ToastAndroid.SHORT);
     }
   };
 
-return (
-  <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-    keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-  >
-    <ScrollView
-      style={styles.formContainer}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingBottom: 80 }}
-    >
-      <Text style={styles.label}>Visit Type</Text>
-      <View style={styles.pickerBox}>
-        <Picker selectedValue={visitMaqsad} onValueChange={(v) => setVisitMaqsad(v)}>
-          <Picker.Item label="Payment Collection" value="Payment Collection" />
-          <Picker.Item label="Order Visit" value="Order Visit" />
-        </Picker>
-      </View>
-
-      <Text style={styles.label}>Client Name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="rohit sharma"
-        placeholderTextColor="#9CA3AF"
-        value={clientName}
-        onChangeText={setClientName}
-      />
-
-      <Text style={styles.label}>Select Date</Text>
-      <TouchableOpacity
-        onPress={() => setShowDatePicker(true)}
-        style={styles.input}
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#F3F4F6" }}>
+      {/* FIX 1: behavior "padding" या "height" दोनों try करें। Android पर कभी-कभी "height" बेहतर काम करता है।
+         FIX 2: keyboardVerticalOffset दिया है ताकि कीबोर्ड खुलने पर व्यू थोड़ा और ऊपर खिसके।
+      */}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 70}
       >
-        <Text style={{ color: manualDate ? "#111" : "#9CA3AF" }}>
-          {manualDate || "Select Date"}
-        </Text>
-      </TouchableOpacity>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          // FIX 3: Padding Bottom बढ़ा दी है ताकि आखिरी एलिमेंट के नीचे जगह रहे और वो कीबोर्ड के पीछे ना छिपे
+          contentContainerStyle={{ paddingBottom: 150, padding: 20 }} 
+          keyboardShouldPersistTaps="handled" // ये भी जरूरी है ताकि कीबोर्ड खुला हो तो बटन दब सके
+        >
+          <View style={styles.cardContainer}>
+            
+            <Text style={styles.label}>Visit Type</Text>
+            <View style={styles.pickerBox}>
+              <Picker 
+                selectedValue={visitType} 
+                onValueChange={setVisitType}
+                style={{ color: "#000" }}
+              >
+                <Picker.Item label="Payment Collection" value="Payment Collection" />
+                <Picker.Item label="Order Visit" value="Order Visit" />
+              </Picker>
+            </View>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={new Date()}
-          mode="date"
-          display="calendar"
-          onChange={onDateChange}
-        />
-      )}
+            <Text style={styles.label}>Dealer Name</Text>
+            <TextInput 
+              style={styles.input} 
+              value={dealerName} 
+              onChangeText={setDealerName}
+              placeholder="Enter Dealer Name"
+              placeholderTextColor="#9CA3AF"
+            />
 
-      {visitMaqsad !== "Other" && (
-        <>
-          <Text style={styles.label}>Amount (₹)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. 5000"
-            keyboardType="numeric"
-            value={paymentAmount}
-            onChangeText={setPaymentAmount}
-            placeholderTextColor="#9CA3AF"
-          />
+            <Text style={styles.label}>Today Date</Text>
+            <View style={[styles.input, { justifyContent: 'center', backgroundColor: '#E5E7EB' }]}>
+              <Text style={{ color: "#374151" }}>{todayDate}</Text>
+            </View>
 
-          <Text style={styles.label}>Payment Mode</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter payment mode"
-            value={paymentMode || ""}
-            onChangeText={setPaymentMode}
-             placeholderTextColor="#9CA3AF"
-          />
-        </>
-      )}
+            <Text style={styles.label}>Camera Picture</Text>
+            <TouchableOpacity onPress={openCamera} style={styles.cameraBtn}>
+              <Text style={{ color: "#fff", fontWeight: "600" }}>📷 Open Camera</Text>
+            </TouchableOpacity>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.cancelButton}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
+            {image && (
+              <Image source={{ uri: image.uri }} style={styles.preview} />
+            )}
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveVisit}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveText}>Save Visit</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  </KeyboardAvoidingView>
-);
+            <Text style={styles.label}>Assessed Amount (Optional)</Text>
+            <TextInput 
+              style={styles.input} 
+              keyboardType="numeric" 
+              value={amount} 
+              onChangeText={setAmount}
+              placeholder="0.00"
+              placeholderTextColor="#9CA3AF"
+            />
 
+            <Text style={styles.label}>Description (Optional)</Text>
+            <TextInput 
+              style={[styles.input, { height: 100, textAlignVertical: 'top' }]} // Multiline ke liye fix
+              value={description} 
+              onChangeText={setDescription}
+              placeholder="Enter details..."
+              placeholderTextColor="#9CA3AF"
+              multiline={true}
+              numberOfLines={4}
+            />
+
+            <Text style={styles.label}>Payment Mode (Optional)</Text>
+            <TextInput 
+              style={styles.input}  
+              value={paymentMode} 
+              onChangeText={setPaymentMode}
+              placeholder="Cash / UPI / Cheque"
+              placeholderTextColor="#9CA3AF"
+            />
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveVisit}>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveText}>Save Visit</Text>
+              )}
+            </TouchableOpacity>
+
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 };
 
 export default ManualVisitEntryScreen;
 
-
-// ------- STYLES -----------
-
 const styles = StyleSheet.create({
-  formContainer: {
+  cardContainer: {
     backgroundColor: "#fff",
-    padding: 20,
+    padding: 15,
     borderRadius: 12,
-    margin: 20,
-    marginBottom:20
   },
   label: {
     marginTop: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#374151",
-    marginBottom: 6,
+    marginBottom: 8,
+    fontSize: 14
   },
   input: {
     backgroundColor: "#F9FAFB",
@@ -231,44 +278,44 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
+    color: "#000",
+    fontSize: 16
   },
   pickerBox: {
     borderWidth: 1,
     borderColor: "#E5E7EB",
     borderRadius: 8,
     backgroundColor: "#F9FAFB",
+    overflow: 'hidden'
   },
-  buttonContainer: {
-    flexDirection: "row",
-    marginTop: 25,
-    justifyContent: "space-between",
-  },
-  cancelButton: {
-    flex: 1,
-    marginRight: 8,
-    paddingVertical: 12,
+  cameraBtn: {
+    backgroundColor: "#3B82F6",
+    padding: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    marginTop: 5,
+    width: 140,
+    alignItems: "center"
   },
-  cancelText: {
-    fontSize: 15,
-    color: "#374151",
-    fontWeight: "600",
+  preview: {
+    width: "100%",
+    height: 100,
+    marginTop: 10,
+    borderRadius: 8,
+    resizeMode: "cover",
+    borderWidth: 1,
+    borderColor: "#ddd"
   },
   saveButton: {
-    flex: 1,
-    marginLeft: 8,
-    paddingVertical: 12,
+    marginTop: 30,
+    paddingVertical: 15,
     borderRadius: 8,
     backgroundColor: "#10B981",
     alignItems: "center",
+    elevation: 2
   },
   saveText: {
-    fontSize: 15,
+    fontSize: 16,
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

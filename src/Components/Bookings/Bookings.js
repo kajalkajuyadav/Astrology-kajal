@@ -12,10 +12,15 @@ import {
   ToastAndroid,
   RefreshControl,
   SafeAreaView,
+  Alert,
+  NativeModules // 1. NativeModules Import kiya
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BaseUrl, ImgUrl } from '../../url/env';
 import LinearGradient from "react-native-linear-gradient";
+
+// 2. Native Module Connect (Tracking rokne ke liye)
+const { LocationModule } = NativeModules;
 
 // Helper for Toast
 const showApiToast = (msg) => {
@@ -54,22 +59,56 @@ const HRMSHubScreen = () => {
 
   // --- STATES ---
   const [profileData, setProfileData] = useState(null);
-  console.log("Profile Data:", profileData);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ⭐ Logout and Redirect
+  // ⭐ LOGOUT FUNCTION (Moved Inside & Enhanced)
   const handleLogoutAndRedirect = async (message = 'Session expired. Please log in again.') => {
     try {
-      await AsyncStorage.removeItem('authToken');
-      await AsyncStorage.removeItem('userName');
-      await AsyncStorage.removeItem('userEmpId');
-
       showApiToast(message);
-      navigation.navigate("Login");
+
+      // 1. Stop Native Tracking (Agar chal raha hai to)
+      if (LocationModule) {
+        LocationModule.stopTracking();
+      }
+
+      // 2. Clear ALL Data (Auth + Location Tracking)
+      const keys = [
+        'authToken', 
+        'userName', 
+        'userEmpId',
+      ];
+      await AsyncStorage.multiRemove(keys);
+
+      // 3. Reset Navigation to Login
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+
     } catch (e) {
-      console.error('Logout failed during redirect:', e);
+      console.error('Logout failed:', e);
     }
+  };
+
+  // ⭐ CONFIRMATION DIALOG (Moved Inside Component)
+  const confirmLogout = () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: () => handleLogoutAndRedirect("Logged out successfully"),
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   // --- Save Data to Storage ---
@@ -93,7 +132,6 @@ const HRMSHubScreen = () => {
       setIsRefreshing(true);
     }
 
-    let successFlag = false;
     try {
       const token = await AsyncStorage.getItem('authToken');
       
@@ -120,10 +158,7 @@ const HRMSHubScreen = () => {
       }
 
       // Authentication Error Check
-      if (
-        response.status === 403 &&
-        json?.error?.statusCode === 403
-      ) {
+      if (response.status === 403 && json?.error?.statusCode === 403) {
         await handleLogoutAndRedirect();
         return;
       }
@@ -133,7 +168,6 @@ const HRMSHubScreen = () => {
         setProfileData(json.data);
         await saveUserDataToStorage(json.data);
         showApiToast('Profile loaded successfully.');
-        successFlag = true;
       }
       else {
         const errMsg = (json && (json.message || json.error?.explanation)) || `Failed (Status: ${response.status})`;
@@ -217,7 +251,7 @@ const HRMSHubScreen = () => {
         </View>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => handleLogoutAndRedirect('Logging out...')}>
+          <TouchableOpacity onPress={confirmLogout}>
             <Image source={require("../img/logout.png")} style={{ height: 30, width: 30 }} />
           </TouchableOpacity>
         </View>
@@ -270,7 +304,7 @@ const HRMSHubScreen = () => {
           </View>
         </View>
 
-        {/* DETAILS CARD - ✅ FIXED: Removed space between View and Image */}
+        {/* DETAILS CARD */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Image source={require("../img/circle.png")} style={{ height: 24, width: 24 }} tintColor={"#3B82F6"} />
@@ -290,7 +324,7 @@ const HRMSHubScreen = () => {
           </View>
         </View>
 
-        {/* SALARY CARD - ✅ FIXED: Removed space between View and Image */}
+        {/* SALARY CARD */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Image source={require("../img/text.png")} style={{ height: 15, width: 15 }} tintColor={"#10B981"} />

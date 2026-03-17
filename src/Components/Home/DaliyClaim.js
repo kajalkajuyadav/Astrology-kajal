@@ -124,7 +124,7 @@ const DaliyClaim = () => {
   };
 
   /* ---------- API ---------- */
-  const dailyClaim = async () => {
+const dailyClaim = async () => {
     if (!refreshing) setLoading(true);
 
     try {
@@ -132,7 +132,6 @@ const DaliyClaim = () => {
       const date = formatDateForApi(selectedDate);
 
       const res = await fetch(
-
         `${BaseUrl}/employees/get/location/app?date=${date}`,
         {
           method: "GET",
@@ -144,19 +143,25 @@ const DaliyClaim = () => {
       console.log("Daily Claim API result:", result);
 
       if (result.success) {
-        const latest = result.data[0];
-
-    // ⭐ Employee ID yahi se set karo
-    if (latest.employee?._id) {
-      setEmployeeId(latest.employee._id);
-      console.log("Employee ID Set From Claim ==> ", latest.employee._id);
-    }
-        setClaim(result.data || []);
-        if (result.data?.length > 0) {
+        // 🔥 FIX: Pehle check karein ki data array empty to nahi hai
+        if (result.data && result.data.length > 0) {
           const latest = result.data[0];
+
+          // Employee ID set karein agar data exist karta hai
+          if (latest.employee?._id) {
+            setEmployeeId(latest.employee._id);
+            console.log("Employee ID Set From Claim ==> ", latest.employee._id);
+          }
+
+          // Map focus aur selection logic
           focusMap(latest.latitude, latest.longitude);
           setSelectedId(latest._id);
+        } else {
+            console.log("No location data found for this date.");
         }
+
+        // List update karein (Empty array bhi ho sakta hai, jo safe hai)
+        setClaim(result.data || []);
       }
     } catch (e) {
       console.log(e);

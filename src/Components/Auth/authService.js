@@ -34,6 +34,7 @@ export const loginUser = async (phone, password) => {
     
     // 2. Check the API's custom success key
     if (json.success !== true) {
+      
       // API-level error (e.g., invalid credentials)
       const msg = json.message || "Login failed. Check your details.";
       return { 
@@ -41,7 +42,7 @@ export const loginUser = async (phone, password) => {
           message: msg 
       };
     }
-
+console.log("✅ Login API Full Response:", json)
     // 3. Extract and Save Token
     let token = null;
     
@@ -58,7 +59,6 @@ export const loginUser = async (phone, password) => {
           message: "Login successful, but session information is missing." 
       };
     }
-
     await AsyncStorage.setItem("authToken", token);
     
     // 4. Success case

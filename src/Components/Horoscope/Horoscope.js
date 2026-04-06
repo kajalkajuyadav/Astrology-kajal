@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { launchImageLibrary } from "react-native-image-picker";
 import { BaseUrl, ImgUrl } from "../../url/env";
 import LinearGradient from "react-native-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 
 const Claims = () => {
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -37,7 +38,7 @@ const Claims = () => {
 
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
-
+const navigation = useNavigation();
   // ⭐ FILTER STATE
   const [filterStatus, setFilterStatus] = useState("ALL");
 
@@ -80,7 +81,23 @@ const Claims = () => {
       });
 
       const data = await response.json();
+     
+if (!data.success && data?.error?.statusCode === 403) {
+  // 🔥 Toast show
+  ToastAndroid.show(
+    "Session expired, please login again",
+    ToastAndroid.SHORT
+  );
 
+  await AsyncStorage.removeItem("authToken");
+
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+
+  return;
+}
       if (data.success) {
         if (refreshingMode) {
           setClaims(data.data.claims);
@@ -159,6 +176,24 @@ const Claims = () => {
       const result = await response.json();
       console.log("✅ API RESPONSE:", result);
 
+  
+if (!result.success && result?.error?.statusCode === 403) {
+  // 🔥 Toast show
+  ToastAndroid.show(
+    "Session expired, please login again",
+    ToastAndroid.SHORT
+  );
+
+  await AsyncStorage.removeItem("authToken");
+
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+
+  return;
+}
+
       // ❌ ERROR HANDLING (MOST IMPORTANT PART)
       if (!response.ok || result?.success === false) {
         const errorMsg =
@@ -197,221 +232,221 @@ const Claims = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#1FA2FF" }}>
       <StatusBar barStyle={"dark-content"} backgroundColor="#1FA2FF" />
 
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>My Claims</Text>
-          <Text style={styles.subtitle}>Manage your expense claims.</Text>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>My Claims</Text>
+            <Text style={styles.subtitle}>Manage your expense claims.</Text>
+          </View>
+
+          <LinearGradient colors={['#1FA2FF', '#12D8FA']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ borderRadius: 8 }}>
+
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setSheetVisible(true)}
+            >
+              <Image source={require("../img/plus.png")} style={styles.addIcon} tintColor={"#fff"} />
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
 
-        <LinearGradient colors={['#1FA2FF', '#12D8FA']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ borderRadius: 8 }}>
-
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setSheetVisible(true)}
+        {/* FILTER BUTTONS */}
+        <View style={{ marginTop: 15, marginBottom: 10 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
           >
-            <Image source={require("../img/plus.png")} style={styles.addIcon} tintColor={"#fff"} />
-            <Text style={styles.addButtonText}>Add</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
-
-      {/* FILTER BUTTONS */}
-      <View style={{ marginTop: 15, marginBottom: 10 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          <View style={styles.filterRow}>
-            {["ALL", "PENDING", "APPROVED", "REJECTED"].map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.filterBtn, filterStatus === s && styles.filterBtnActive]}
-                onPress={() => setFilterStatus(s)}
-              >
-                <Text
-                  style={[styles.filterText, filterStatus === s && styles.filterTextActive]}
-                >
-                  {s}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-
-
-
-      {/* Loading Indicator */}
-      {loading && claims.length === 0 ? (
-        <ActivityIndicator size="large" color="#2563EB" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={filteredClaims}
-          keyExtractor={(item, index) => item._id + "_" + index}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={() => (
-            <Text style={{ textAlign: "center", marginTop: 20, color: "#6B7280" }}>
-              No claims found.
-            </Text>
-          )}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.rowBetween}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-
-                <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
-                  <Text style={styles.statusText}>{item.status}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.amount}>₹ {item.amount}</Text>
-              <Text style={styles.desc}>{item.description}</Text>
-              <Text style={styles.givenBy}>Given by: {item.employee?.name}</Text>
-
-              {item.bill ? (
+            <View style={styles.filterRow}>
+              {["ALL", "PENDING", "APPROVED", "REJECTED"].map((s) => (
                 <TouchableOpacity
-                  onPress={() => {
-                    setPreviewImage(`${ImgUrl}/${item.bill}`);
-                    setPreviewVisible(true);
-                  }}
+                  key={s}
+                  style={[styles.filterBtn, filterStatus === s && styles.filterBtnActive]}
+                  onPress={() => setFilterStatus(s)}
                 >
-                  <Image
-                    source={{ uri: `${ImgUrl}/${item.bill}` }}
-                    style={styles.billImage}
-                  />
+                  <Text
+                    style={[styles.filterText, filterStatus === s && styles.filterTextActive]}
+                  >
+                    {s}
+                  </Text>
                 </TouchableOpacity>
-              ) : (
-                <Text style={styles.noBill}>No Bill Attached</Text>
-              )}
-
-              <View style={styles.responseBox}>
-                {item.response ? (
-                  <>
-                    <Text style={styles.responseTitle}>Response</Text>
-                    <Text style={styles.responseMessage}>{item.response}</Text>
-                    {item.response.by && (
-                      <Text style={styles.responseBy}>By: {item.response.by}</Text>
-                    )}
-                  </>
-                ) : (
-                  <Text style={styles.noResponse}>Waiting for response…</Text>
-                )}
-              </View>
-
-              <Text style={styles.date}>
-                {new Date(item.createdAt).toLocaleDateString()}
-              </Text>
+              ))}
             </View>
-          )}
-        />
-      )}
+          </ScrollView>
+        </View>
 
-      {/* Add Claim Modal */}
-      <Modal visible={sheetVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.modalRoot}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={styles.backdrop} />
-          <View style={styles.sheet}>
+
+
+        {/* Loading Indicator */}
+        {loading && claims.length === 0 ? (
+          <ActivityIndicator size="large" color="#2563EB" style={{ marginTop: 40 }} />
+        ) : (
+          <FlatList
+            data={filteredClaims}
+            keyExtractor={(item, index) => item._id + "_" + index}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={() => (
+              <Text style={{ textAlign: "center", marginTop: 20, color: "#6B7280" }}>
+                No claims found.
+              </Text>
+            )}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+
+                  <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+                    <Text style={styles.statusText}>{item.status}</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.amount}>₹ {item.amount}</Text>
+                <Text style={styles.desc}>{item.description}</Text>
+                <Text style={styles.givenBy}>Given by: {item.employee?.name}</Text>
+
+                {item.bill ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setPreviewImage(`${ImgUrl}/${item.bill}`);
+                      setPreviewVisible(true);
+                    }}
+                  >
+                    <Image
+                      source={{ uri: `${ImgUrl}/${item.bill}` }}
+                      style={styles.billImage}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.noBill}>No Bill Attached</Text>
+                )}
+
+                <View style={styles.responseBox}>
+                  {item.response ? (
+                    <>
+                      <Text style={styles.responseTitle}>Response</Text>
+                      <Text style={styles.responseMessage}>{item.response}</Text>
+                      {item.response.by && (
+                        <Text style={styles.responseBy}>By: {item.response.by}</Text>
+                      )}
+                    </>
+                  ) : (
+                    <Text style={styles.noResponse}>Waiting for response…</Text>
+                  )}
+                </View>
+
+                <Text style={styles.date}>
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+            )}
+          />
+        )}
+
+        {/* Add Claim Modal */}
+        <Modal visible={sheetVisible} animationType="slide" transparent>
+          <KeyboardAvoidingView
+            style={styles.modalRoot}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <View style={styles.backdrop} />
+            <View style={styles.sheet}>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setSheetVisible(false)}
+              >
+                <Text style={styles.modalCloseText}>×</Text>
+              </TouchableOpacity>
+
+              <ScrollView contentContainerStyle={styles.sheetContent}>
+                <Text style={styles.sheetTitle}>New Expense Claim</Text>
+
+                <Text style={styles.label}>Reason / Title</Text>
+                <TextInput
+                  style={styles.input}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Ex: Travel Expense, Stationeries"
+                  placeholderTextColor="#9CA3AF"
+                />
+
+                <Text style={styles.label}>Amount (₹)</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={amount}
+                  onChangeText={setAmount}
+                  placeholder="0.00"
+                  placeholderTextColor="#9CA3AF"
+                />
+
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Additional details..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                />
+
+                {bill ? (
+                  <View style={{ alignItems: "center", marginTop: 10 }}>
+                    <Image source={{ uri: bill.uri }} style={styles.billImage} />
+                    <TouchableOpacity onPress={() => setBill(null)}>
+                      <Text style={styles.removeBill}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.billButton}
+                    onPress={handlePickBill}
+                  >
+                    <Text style={styles.billButtonText}>Attach Bill</Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={handleSubmit}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.submitText}>Submit Claim</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* IMAGE PREVIEW MODAL */}
+        <Modal visible={previewVisible} transparent animationType="fade">
+          <View style={styles.fullScreenContainer}>
             <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={() => setSheetVisible(false)}
+              style={styles.closeButton}
+              onPress={() => setPreviewVisible(false)}
             >
-              <Text style={styles.modalCloseText}>×</Text>
+              <Text style={styles.closeText}>X</Text>
             </TouchableOpacity>
 
-            <ScrollView contentContainerStyle={styles.sheetContent}>
-              <Text style={styles.sheetTitle}>New Expense Claim</Text>
-
-              <Text style={styles.label}>Reason / Title</Text>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Ex: Travel Expense, Stationeries"
-                placeholderTextColor="#9CA3AF"
-              />
-
-              <Text style={styles.label}>Amount (₹)</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="0.00"
-                placeholderTextColor="#9CA3AF"
-              />
-
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Additional details..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-              />
-
-              {bill ? (
-                <View style={{ alignItems: "center", marginTop: 10 }}>
-                  <Image source={{ uri: bill.uri }} style={styles.billImage} />
-                  <TouchableOpacity onPress={() => setBill(null)}>
-                    <Text style={styles.removeBill}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.billButton}
-                  onPress={handlePickBill}
-                >
-                  <Text style={styles.billButtonText}>Attach Bill</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitText}>Submit Claim</Text>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
+            <Image
+              source={{ uri: previewImage }}
+              style={styles.fullScreenImage}
+              resizeMode="contain"
+            />
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* IMAGE PREVIEW MODAL */}
-      <Modal visible={previewVisible} transparent animationType="fade">
-        <View style={styles.fullScreenContainer}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setPreviewVisible(false)}
-          >
-            <Text style={styles.closeText}>X</Text>
-          </TouchableOpacity>
-
-          <Image
-            source={{ uri: previewImage }}
-            style={styles.fullScreenImage}
-            resizeMode="contain"
-          />
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 };
@@ -422,9 +457,9 @@ export default Claims;
 // ====================== STYLES =========================
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB", paddingHorizontal: 20, paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0 },
+  container: { flex: 1, backgroundColor: "#F9FAFB", paddingHorizontal: 20 },
 
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" ,paddingTop:10},
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 10 },
   title: { fontSize: 24, fontWeight: "700", color: "#111827" },
   subtitle: { color: "#6B7280" },
 

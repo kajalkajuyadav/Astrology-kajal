@@ -10,7 +10,8 @@ import {
   Alert,
   RefreshControl,
   Image, 
-  StatusBar
+  StatusBar,
+  ToastAndroid
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BaseUrl } from '../../url/env';
@@ -73,6 +74,22 @@ const AttendanceReport = () => {
       const response = await fetch(API_URL, requestOptions);
       const result = await response.json();
 
+if (!result.success && result?.error?.statusCode === 403) {
+  // 🔥 Toast show
+  ToastAndroid.show(
+    "Session expired, please login again",
+    ToastAndroid.SHORT
+  );
+
+  await AsyncStorage.removeItem("authToken");
+
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+
+  return;
+}
       console.log("Attendance Data:", result);
 
       if (result.success === true) {
@@ -258,7 +275,7 @@ const styles = StyleSheet.create({
   backButton: { padding: 5, marginRight: 15 },
   backIcon: { width: 24, height: 24, resizeMode: 'contain' },
   screenTitle: { fontSize: 20, fontWeight: '700', color: '#333' },
-  container: { flex: 1, backgroundColor: '#F5F7FA', paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0 },
+  container: { flex: 1, backgroundColor: '#F5F7FA' },
   monthSelector: { 
     backgroundColor: '#007BFF', 
     paddingVertical: 15, 

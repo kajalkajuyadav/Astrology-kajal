@@ -80,6 +80,23 @@ const SalarySelf = () => {
       });
 
       const result = await response.json();
+
+if (!result.success && result?.error?.statusCode === 403) {
+  // 🔥 Toast show
+  ToastAndroid.show(
+    "Session expired, please login again",
+    ToastAndroid.SHORT
+  );
+
+  await AsyncStorage.removeItem("authToken");
+
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+
+  return;
+}
       
       if (result?.success) {
         const newSlips = result?.data?.slips ?? [];
@@ -339,7 +356,7 @@ export default SalarySelf;
 
 /* ---------------- STYLES ---------------- */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" , paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0},
+  container: { flex: 1, backgroundColor: "#fff" ,},
 
   // Nav Header
   navHeader: {

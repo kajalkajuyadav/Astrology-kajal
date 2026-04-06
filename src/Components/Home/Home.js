@@ -17,8 +17,8 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Geolocation from 'react-native-geolocation-service';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useNavigation } from "@react-navigation/native";
-import { BaseUrl } from '../../url/env'; // Ensure this path is correct
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { BaseUrl, ImgUrl } from '../../url/env'; // Ensure this path is correct
 import LinearGradient from "react-native-linear-gradient";
 import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
 import { NativeModules } from 'react-native';
@@ -34,6 +34,8 @@ const Home = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [userName, setUserName] = useState("User");
+  const [profileImage, setProfileImage] = useState(null);
+
   const [refreshing, setRefreshing] = useState(false);
 
   // Refs
@@ -91,7 +93,7 @@ const Home = () => {
       const token = await AsyncStorage.getItem('authToken');
       if (!token) return;
 
-      await fetch(`${BaseUrl}/offline`, {
+      const response = await fetch(`${BaseUrl}/offline`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +104,9 @@ const Home = () => {
           deviceTimestamp: new Date().toISOString(),
         }),
       });
+      const json = await response.json();
 
+    
       console.log('📴 Offline status sent');
     } catch (e) {
       const existing = await AsyncStorage.getItem('OFFLINE_QUEUE');
@@ -150,7 +154,7 @@ const Home = () => {
   // ============================================
   // 3. TRACKING HELPERS (Visual + Service)
   // ============================================
-  
+
   // Note: Native Service khud notification handle karta hai, 
   // lekin agar aapko extra JS side notification chahiye toh yeh rakhein.
   const startForegroundTracking = async () => {
@@ -181,9 +185,9 @@ const Home = () => {
     try {
       await notifee.stopForegroundService();
     } catch (e) { console.log(e) }
-    
+
     setIsTracking(false);
-    
+
     // Stop Map Watch
     if (watchIdRef.current) {
       Geolocation.clearWatch(watchIdRef.current);
@@ -201,7 +205,7 @@ const Home = () => {
     try {
       await LocationServiceModule.startService(BaseUrl, shortToken);
       // Ask user to disable battery optimizations (best effort)
-      try { await LocationServiceModule.requestBatteryOptimizationOff(); } catch(e){ }
+      try { await LocationServiceModule.requestBatteryOptimizationOff(); } catch (e) { }
       showToast('Native Service Started');
     } catch (e) {
       console.log('startNativeService error', e);
@@ -277,7 +281,24 @@ const Home = () => {
           });
 
           const result = await response.json();
+          // 🔥 ADD THIS BLOCK (IMPORTANT)
 
+          if (!result.success && result?.error?.statusCode === 403) {
+            // 🔥 Toast show
+            ToastAndroid.show(
+              "Session expired, please login again",
+              ToastAndroid.SHORT
+            );
+
+            await AsyncStorage.removeItem("authToken");
+
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+
+            return;
+          }
           if (response.ok && result.success) {
             setIsCheckedIn(true);
             setCurrentLocation({ latitude, longitude });
@@ -295,7 +316,7 @@ const Home = () => {
             );
 
             // Request battery optimization exemption (helps survive aggressive OEM killers)
-            try { await LocationServiceModule.requestBatteryOptimizationOff(); } catch(e){ /* ignore */ }
+            try { await LocationServiceModule.requestBatteryOptimizationOff(); } catch (e) { /* ignore */ }
 
             // 2. Start Map Tracking
             startVisualTracking(setCurrentLocation);
@@ -317,7 +338,61 @@ const Home = () => {
     );
   };
 
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true; // Component focus mein hai
+
+      const reloadOnFocus = async () => {
+        const wasCheckedIn = await AsyncStorage.getItem('isCheckedIn');
+        const lat = await AsyncStorage.getItem('lastLat');
+        const lng = await AsyncStorage.getItem('lastLng');
+
+        // Agar user focus mein hai aur checked-in hai, toh state force-update karein
+        if (isActive && wasCheckedIn === 'true' && lat && lng) {
+          setIsCheckedIn(true);
+          setIsTracking(true); // Map render trigger karega
+          setCurrentLocation({
+            latitude: parseFloat(lat),
+            longitude: parseFloat(lng)
+          });
+
+          // Debugging console (isko remove kar sakti hain baad mein)
+          console.log("🔄 Screen Auto-Reloaded: Map activated");
+        }
+      };
+
+      reloadOnFocus();
+
+      // Cleanup function jab focus screen se jaye
+      return () => {
+        isActive = false;
+      };
+    }, []));
+
+    const showCheckoutAlert = (onConfirm) => {
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  // English Message for early checkout
+  let message = "Are you sure you want to check-out?";
+  if (currentHour < 22) {
+    message = "Your shift ends at 10:00 PM. It is still early. Are you sure you want to check-out now?";
+  }
+
+  Alert.alert(
+    "Check-Out Confirmation",
+    message,
+    [
+      { text: "No", style: "cancel" },
+      { text: "Yes", onPress: onConfirm } // Jab user Yes dabayega toh onConfirm chalega
+    ],
+    { cancelable: true }
+  );
+};
+
   const handleCheckOut = async () => {
+    showCheckoutAlert(async () => {
     Geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -337,6 +412,25 @@ const Home = () => {
 
           const result = await response.json();
 
+          // 🔥 ADD THIS BLOCK (IMPORTANT)
+
+          if (!result.success && result?.error?.statusCode === 403) {
+            // 🔥 Toast show
+            ToastAndroid.show(
+              "Session expired, please login again",
+              ToastAndroid.SHORT
+            );
+
+            await AsyncStorage.removeItem("authToken");
+
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+
+            return;
+          }
+
           if (response.ok && result.success) {
             await performLocalCheckout();
             showToast('Checked-Out Successfully!');
@@ -350,6 +444,7 @@ const Home = () => {
       () => showToast('Please enable GPS'),
       { enableHighAccuracy: true }
     );
+  })
   };
 
   const performLocalCheckout = async () => {
@@ -357,7 +452,7 @@ const Home = () => {
     await LocationServiceModule.stopService();
     // Stop Notifee/Map
     await stopForegroundTracking();
-    
+
     setIsCheckedIn(false);
     setIsTracking(false);
     await AsyncStorage.setItem('isCheckedIn', 'false');
@@ -381,7 +476,7 @@ const Home = () => {
 
     if (wasCheckedIn === 'true' && storedDate === todayDate && !isTimeUp) {
       console.log("🔄 Restoring Active Session...");
-      
+
       setIsCheckedIn(true);
       setIsTracking(true);
 
@@ -430,13 +525,13 @@ const Home = () => {
       if (currentHour >= 22) {
         const wasCheckedIn = await AsyncStorage.getItem('isCheckedIn');
         if (wasCheckedIn === 'true') {
-           await performLocalCheckout();
-           showToast("Auto Checked-Out (10 PM)");
+          await performLocalCheckout();
+          showToast("Auto Checked-Out (10 PM)");
         }
       }
     };
 
-    updateTime(); 
+    updateTime();
     const clockTimer = setInterval(updateTime, 60000); // Check every minute
 
     // D. User Name
@@ -456,12 +551,68 @@ const Home = () => {
     else Alert.alert('Info', msg);
   };
 
+
+
+  // get name function profile Api 
+
+useEffect(() => {
+  fetchAndStoreName();
+}, []);
+
+
+
+  // 1. Function jo sirf naam nikal kar store karega
+  const fetchAndStoreName = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch(`${BaseUrl}/employees/get/profile`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const json = await response.json();
+       if (!json.success && json?.error?.statusCode === 403) {
+            // 🔥 Toast show
+            ToastAndroid.show(
+              "Session expired, please login again",
+              ToastAndroid.SHORT
+            );
+
+            await AsyncStorage.removeItem("authToken");
+
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+
+            return;
+          }
+
+
+      if (response.ok && json?.success && json?.data) {
+        const name = json.data.full_name || json.data.name;
+         const profileImage = json.data.profile;
+        console.log("Fetched Name:", name,profileImage);
+        setUserName(name); // State update
+        setProfileImage(profileImage);
+      }
+    } catch (err) {
+      console.error("Home Profile Fetch Error:", err);
+    }
+  };
+
+
   // ============================================
   // UI RENDER
   // ============================================
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#1FA2FF" }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#1FA2FF"  />
+    <View style={{ flex: 1, backgroundColor: "#1FA2FF" }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#1FA2FF" />
 
       <View style={styles.container}>
         <LinearGradient
@@ -470,17 +621,24 @@ const Home = () => {
           end={{ x: 1, y: 0 }}
           style={styles.header}
         >
-          <View style={styles.headerRow}>
+          <TouchableOpacity activeOpacity={0.7}  onPress={()=>navigation.navigate("Profile")} style={styles.headerRow}>
             <View style={{ marginTop: 10 }}>
-              <Image
+            {
+              profileImage?<Image
+                  style={styles.profilePicture}
+                  source={{ uri: (String(profileImage).startsWith('http') ? profileImage : `${ImgUrl}/${String(profileImage).replace(/^\/+/, '')}`) }}
+                />:
+                 <Image
                 source={require("../img/logo.png")}
                 style={{ height: 30, width: 40, resizeMode: 'contain' }}
               />
+            }
+             
             </View>
-            <View>
+            <View style={{ marginTop: 10 }}>
               <Text style={styles.greeting}>{userName}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </LinearGradient>
 
         <ScrollView
@@ -562,7 +720,7 @@ const Home = () => {
           </View>
 
           {/* Quick Actions */}
-          <View style={styles.quickActions}>        
+          <View style={styles.quickActions}>
             <Text style={styles.quickTitle}>Quick Actions</Text>
 
             {/* Start/Stop Test Buttons */}
@@ -575,41 +733,42 @@ const Home = () => {
                 <Text style={styles.controlText}>Stop Service</Text>
               </TouchableOpacity>
             </View> */}
- 
+
             <View style={styles.actionGrid}>
-              <TouchableOpacity onPress={() => navigation.navigate("DaliySafer")} style={[styles.actionCard,{backgroundColor:"#DBEAFE"}]}>
+              <TouchableOpacity onPress={() => navigation.navigate("DaliySafer")} style={[styles.actionCard, { backgroundColor: "#DBEAFE" }]}>
                 <Image source={require("../img/marker.png")} style={{ height: 30, width: 30 }} tintColor={"#3B82F6"} />
                 <Text style={[styles.actionText, { color: "#3B82F6" }]}>Daily Safar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate("Salary")} style={[styles.actionCard,{backgroundColor:"#F3E8FF"}]}>
+              <TouchableOpacity onPress={() => navigation.navigate("Salary")} style={[styles.actionCard, { backgroundColor: "#F3E8FF" }]}>
                 <Image source={require("../img/rupee.png")} style={{ height: 30, width: 30 }} tintColor={"#A855F7"} />
                 <Text style={[styles.actionText, { color: "#A855F7" }]}>My Claims</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate("MyVisitsScreen")} style={[styles.actionCard,{backgroundColor:"#E0F2FE"}]}>
+              <TouchableOpacity onPress={() => navigation.navigate("MyVisitsScreen")} style={[styles.actionCard, { backgroundColor: "#E0F2FE" }]}>
                 <Image source={require("../img/visitor.png")} style={{ height: 30, width: 30 }} tintColor={"#06B6D4"} />
                 <Text style={[styles.actionText, { color: "#06B6D4" }]}>My Visits</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => navigation.navigate("Attendance")} style={[styles.actionCard,{backgroundColor:"#FFF7ED"}]}>
+              <TouchableOpacity onPress={() => navigation.navigate("Attendance")} style={[styles.actionCard, { backgroundColor: "#FFF7ED" }]}>
                 <Image source={require("../img/briefcase.png")} style={{ height: 30, width: 30 }} tintColor={"#FF8C00"} />
-                 <Text style={[styles.actionText, { color: "#FF8C00" }]}>Attendance</Text>
-               </TouchableOpacity>          
+                <Text style={[styles.actionText, { color: "#FF8C00" }]}>Attendance</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default Home;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0 },
+  container: { flex: 1, backgroundColor: "#fff", },
   header: { marginBottom: 10, paddingHorizontal: 20, paddingBottom: 10 },
-  headerRow: { flexDirection: 'row', gap: 10, alignItems: "center" },
+  headerRow: { flexDirection: 'row', gap: 10, alignItems: "center", },
   greeting: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  profilePicture: { width: 40, height: 40, borderRadius: 40, alignSelf: 'center', borderWidth: 1, borderColor: '#F3F4F6', overflow: "hidden", },
   timeCard: { backgroundColor: "#3B82F6", borderRadius: 12, padding: 20, marginTop: 10, marginHorizontal: 15, elevation: 3 },
   timeHeader: { flexDirection: "row", alignItems: "center" },
   timeLabel: { color: "#fff", fontSize: 18, fontWeight: "700", marginLeft: 4 },

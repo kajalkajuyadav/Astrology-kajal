@@ -5,10 +5,12 @@ import {
   StyleSheet,
   ActivityIndicator,
   FlatList,
-  RefreshControl
+  RefreshControl,
+  ToastAndroid
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BaseUrl } from "../../url/env";
+import { useNavigation } from "@react-navigation/native";
 
 const PaymentScreen = () => {
   const [visits, setVisits] = useState([]);
@@ -17,6 +19,8 @@ const PaymentScreen = () => {
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const navigation = useNavigation()
+
 
   const fetchOrderVisits = async (pageNo = 1, isRefresh = false) => {
     try {
@@ -37,6 +41,22 @@ const PaymentScreen = () => {
 
       const data = await res.json();
 
+      if (!data.success && data?.error?.statusCode === 403) {
+        // 🔥 Toast show
+        ToastAndroid.show(
+          "Session expired, please login again",
+          ToastAndroid.SHORT
+        );
+
+        await AsyncStorage.removeItem("authToken");
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
+
+        return;
+      }
       console.log("ORDER VISITS:", data);
 
       if (data.success === true) {

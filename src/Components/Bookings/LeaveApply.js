@@ -25,6 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { BaseUrl } from "../../url/env";
 import LinearGradient from "react-native-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 
 // ---------------- STATUS TAG ----------------
 const StatusTag = ({ status }) => {
@@ -145,7 +146,7 @@ const LeaveManagementScreen = () => {
   const [endDate, setEndDate] = useState("");
   const [openStartPicker, setOpenStartPicker] = useState(false);
   const [openEndPicker, setOpenEndPicker] = useState(false);
-
+const navigation = useNavigation();
   // ---------------- FETCH DATA API (FIXED LOGIC) ----------------
   // ---------------- FETCH DATA API (Updated for your Response) ----------------
   // ---------------- FETCH DATA API (Final Fix) ----------------
@@ -171,6 +172,23 @@ const LeaveManagementScreen = () => {
 
       const responseJson = await res.json();
       console.log("🔥 API RESPONSE:", responseJson);
+
+      if (!responseJson.success && responseJson?.error?.statusCode === 403) {
+        // 🔥 Toast show
+        ToastAndroid.show(
+          "Session expired, please login again",
+          ToastAndroid.SHORT
+        );
+
+        await AsyncStorage.removeItem("authToken");
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
+
+        return;
+      }
 
       // 2. Data Check Logic (According to your structure)
       // Structure: { success: true, data: { leaves: [...] } }
@@ -251,6 +269,23 @@ const LeaveManagementScreen = () => {
 
       const data = await res.json();
 
+      if (!data.success && data?.error?.statusCode === 403) {
+        // 🔥 Toast show
+        ToastAndroid.show(
+          "Session expired, please login again",
+          ToastAndroid.SHORT
+        );
+
+        await AsyncStorage.removeItem("authToken");
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
+
+        return;
+      }
+
       if (data?.success) {
         ToastAndroid.show("Leave applied!", ToastAndroid.SHORT);
         setIsModalVisible(false);
@@ -274,55 +309,55 @@ const LeaveManagementScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#1FA2FF" />
-<View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Leave Management</Text>
-        <Text style={styles.subtitle}>Track your leave requests</Text>
-      </View>
+      <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Leave Management</Text>
+          <Text style={styles.subtitle}>Track your leave requests</Text>
+        </View>
 
-      <View style={styles.summaryContainer}>
-        <SummaryCard title="Pending" count={counts.pending} color="#F97316" />
-        <SummaryCard title="Approved" count={counts.approved} color="#10B981" />
-        <SummaryCard title="Rejected" count={counts.rejected} color="#DC2626" />
-      </View>
+        <View style={styles.summaryContainer}>
+          <SummaryCard title="Pending" count={counts.pending} color="#F97316" />
+          <SummaryCard title="Approved" count={counts.approved} color="#10B981" />
+          <SummaryCard title="Rejected" count={counts.rejected} color="#DC2626" />
+        </View>
 
-      {/* Filter Buttons */}
-      <View style={styles.filterRow}>
-        {["All", "Pending", "Approved", "Rejected"].map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[
-              styles.filterBtn,
-              filterStatus === status && styles.filterBtnActive,
-            ]}
-            onPress={() => handleFilterClick(status)}
+        {/* Filter Buttons */}
+        <View style={styles.filterRow}>
+          {["All", "Pending", "Approved", "Rejected"].map((status) => (
+            <TouchableOpacity
+              key={status}
+              style={[
+                styles.filterBtn,
+                filterStatus === status && styles.filterBtnActive,
+              ]}
+              onPress={() => handleFilterClick(status)}
+            >
+              <Text style={[
+                styles.filterBtnText,
+                filterStatus === status && styles.filterBtnTextActive,
+              ]}>
+                {status}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.listHeader}>
+          <Text style={styles.listTitle}>
+            {filterStatus === "All" ? "All Requests" : `${filterStatus} Requests`}
+          </Text>
+          <LinearGradient colors={['#1FA2FF', '#12D8FA']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ borderRadius: 8 }}
           >
-            <Text style={[
-              styles.filterBtnText,
-              filterStatus === status && styles.filterBtnTextActive,
-            ]}>
-              {status}
-            </Text>
-          </TouchableOpacity>
-        ))}
+            <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>
+              <Image source={require("../img/plus.png")} style={{ height: 16, width: 16, tintColor: '#FFFFFF' }} />
+              <Text style={styles.addButtonText}>Add Leave</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
       </View>
-
-      <View style={styles.listHeader}>
-        <Text style={styles.listTitle}>
-          {filterStatus === "All" ? "All Requests" : `${filterStatus} Requests`}
-        </Text>
-        <LinearGradient colors={['#1FA2FF', '#12D8FA']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ borderRadius: 8 }}
-        >
-          <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>
-            <Image source={require("../img/plus.png")} style={{ height: 16, width: 16, tintColor: '#FFFFFF' }} />
-            <Text style={styles.addButtonText}>Add Leave</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
-    </View>
       {loading && !refreshing ? (
         <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 50 }} />
       ) : (
@@ -384,7 +419,7 @@ export default LeaveManagementScreen;
 
 // Styles same as before
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0 },
+  container: { flex: 1, backgroundColor: "#F9FAFB" },
   title: { fontSize: 24, fontWeight: "700", color: "#1F2937" },
   subtitle: { fontSize: 14, color: "#6B7280" },
   scrollContainer: { paddingHorizontal: 20, paddingBottom: 50 },

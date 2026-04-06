@@ -11,12 +11,14 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
-  Image
+  Image,
+  ToastAndroid
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { BaseUrl } from "../../url/env";
+import { useNavigation } from "@react-navigation/native";
 
 const { height } = Dimensions.get("window");
 
@@ -95,6 +97,7 @@ const DaliyClaim = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [attendance, setAttendance] = useState(null);
   const mapRef = useRef(null);
+  const navigation = useNavigation();
   const [selectedLocation, setSelectedLocation] = useState({
     latitude: 26.9124,
     longitude: 75.7873,
@@ -142,6 +145,26 @@ const dailyClaim = async () => {
       const result = await res.json();
       console.log("Daily Claim API result:", result);
 
+       // 🔥 SESSION EXPIRE CHECK
+  
+if (!result.success && result?.error?.statusCode === 403) {
+  // 🔥 Toast show
+  ToastAndroid.show(
+    "Session expired, please login again",
+    ToastAndroid.SHORT
+  );
+
+  await AsyncStorage.removeItem("authToken");
+
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+
+  return;
+}
+
+
       if (result.success) {
         // 🔥 FIX: Pehle check karein ki data array empty to nahi hai
         if (result.data && result.data.length > 0) {
@@ -170,11 +193,6 @@ const dailyClaim = async () => {
       setRefreshing(false);
     }
   };
-
-
-
-
- 
 
 
   const focusMap = (lat, long) => {
@@ -260,6 +278,23 @@ const dailyClaim = async () => {
       );
 
       const result = await res.json();
+     
+if (!result.success && result?.error?.statusCode === 403) {
+  // 🔥 Toast show
+  ToastAndroid.show(
+    "Session expired, please login again",
+    ToastAndroid.SHORT
+  );
+
+  await AsyncStorage.removeItem("authToken");
+
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+
+  return;
+}
 
       if (result.success) {
         const att = Array.isArray(result.data)

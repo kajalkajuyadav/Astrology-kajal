@@ -350,7 +350,7 @@ const HRMSHubScreen = () => {
 export default HRMSHubScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0},
+  container: { flex: 1, backgroundColor: "#F9FAFB"},
   header: { flexDirection: "row", justifyContent: "space-between", padding: 20, },
   header1: { flexDirection: "row", alignItems: "center" },
   headerActions: { flexDirection: "row", alignItems: "center" },

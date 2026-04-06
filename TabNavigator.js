@@ -2,9 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Image, StyleSheet } from 'react-native';
 import Home from './src/Components/Home/Home';
 import Horoscope from './src/Components/Horoscope/Horoscope';
-import Astrologers from './src/Components/Astrologers/Astrologers';
 import Bookings from './src/Components/Bookings/Bookings';
-import Wallet from './src/Components/Wallet/Wallet'; // Wallet import hai par neeche use nahi hua hai, main add kar rahi hoon
 import LeaveManagementScreen from './src/Components/Bookings/LeaveApply';
 
 const Tab = createBottomTabNavigator();
@@ -63,12 +61,12 @@ export function HomeTabs() {
         }}
       />
       <Tab.Screen 
-        name="Salary" 
+        name="Claims" 
         component={Horoscope}
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon 
-              source={require('./src/Components/img/horoscope.png')} 
+              source={require('./src/Components/img/salary.png')} 
               focused={focused} 
             />
           ),

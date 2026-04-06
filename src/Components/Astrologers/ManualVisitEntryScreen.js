@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { launchCamera } from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import { BaseUrl } from "../../url/env"; 
+import { useNavigation } from "@react-navigation/native";
 
 const ManualVisitEntryScreen = () => {
   const [visitType, setVisitType] = useState("Payment Collection");
@@ -28,7 +29,7 @@ const ManualVisitEntryScreen = () => {
   const [todayDate, setTodayDate] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
-
+const navigation = useNavigation();
   useEffect(() => {
     const d = new Date();
     const day = (`0${d.getDate()}`).slice(-2);
@@ -138,6 +139,23 @@ if (!image) {
       const data = await res.json();
       console.log("📨 API Response:", JSON.stringify(data, null, 2));
       setLoading(false);
+      
+if (!data.success && data?.error?.statusCode === 403) {
+  // 🔥 Toast show
+  ToastAndroid.show(
+    "Session expired, please login again",
+    ToastAndroid.SHORT
+  );
+
+  await AsyncStorage.removeItem("authToken");
+
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+
+  return;
+}
 
       if (data?.success) {
         console.log("✅ Visit saved successfully!");

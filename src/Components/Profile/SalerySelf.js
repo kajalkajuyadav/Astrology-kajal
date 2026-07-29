@@ -210,7 +210,7 @@ if (!result.success && result?.error?.statusCode === 403) {
       <View key={index} style={styles.payslipCard}>
         <View style={styles.cardHeader}>
           <View>
-            <Text style={styles.companyName}>CANX INTERNATIONAL</Text>
+            <Text style={styles.companyName}>WORKTRACK 360</Text>
             <Text style={styles.companyLoc}>Jaipur, Rajasthan, India</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>

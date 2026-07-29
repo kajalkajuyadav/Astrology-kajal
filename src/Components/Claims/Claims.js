@@ -240,7 +240,7 @@ if (!result.success && result?.error?.statusCode === 403) {
             <Text style={styles.subtitle}>Manage your expense claims.</Text>
           </View>
 
-          <LinearGradient colors={['#1FA2FF', '#12D8FA']}
+          <LinearGradient colors={['#1A4B7C', '#4CAF50']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{ borderRadius: 8 }}>
@@ -485,8 +485,8 @@ const styles = StyleSheet.create({
   filterBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: "#E5E7EB" },
 
   filterBtnActive: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: "#1A4B7C",
+    borderColor: "#1A4B7C",
   },
   filterText: { fontSize: 13, fontWeight: "600", color: "#6B7280" },
   filterTextActive: { color: "#fff" },
@@ -568,16 +568,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#2563EB",
+    borderColor: "#1A4B7C",
     borderRadius: 12,
     alignItems: "center",
   },
-  billButtonText: { color: "#2563EB", fontWeight: "700" },
+  billButtonText: { color: "#1A4B7C", fontWeight: "700" },
   removeBill: { color: "red", marginTop: 10, fontWeight: "600" },
 
   submitButton: {
     marginTop: 20,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#1A4B7C",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",

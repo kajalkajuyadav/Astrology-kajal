@@ -23,7 +23,7 @@ import LinearGradient from "react-native-linear-gradient";
 import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
 import { NativeModules } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-
+import styles from "../Home/HomeStyles";
 const { LocationServiceModule } = NativeModules;
 
 const Home = () => {
@@ -35,7 +35,6 @@ const Home = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [userName, setUserName] = useState("User");
   const [profileImage, setProfileImage] = useState(null);
-
   const [refreshing, setRefreshing] = useState(false);
 
   // Refs
@@ -106,7 +105,7 @@ const Home = () => {
       });
       const json = await response.json();
 
-    
+
       console.log('📴 Offline status sent');
     } catch (e) {
       const existing = await AsyncStorage.getItem('OFFLINE_QUEUE');
@@ -370,81 +369,81 @@ const Home = () => {
       };
     }, []));
 
-    const showCheckoutAlert = (onConfirm) => {
-  const now = new Date();
-  const currentHour = now.getHours();
+  const showCheckoutAlert = (onConfirm) => {
+    const now = new Date();
+    const currentHour = now.getHours();
 
-  // English Message for early checkout
-  let message = "Are you sure you want to check-out?";
-  if (currentHour < 22) {
-    message = "Your shift ends at 10:00 PM. It is still early. Are you sure you want to check-out now?";
-  }
+    // English Message for early checkout
+    let message = "Are you sure you want to check-out?";
+    if (currentHour < 22) {
+      message = "Your shift ends at 10:00 PM. It is still early. Are you sure you want to check-out now?";
+    }
 
-  Alert.alert(
-    "Check-Out Confirmation",
-    message,
-    [
-      { text: "No", style: "cancel" },
-      { text: "Yes", onPress: onConfirm } // Jab user Yes dabayega toh onConfirm chalega
-    ],
-    { cancelable: true }
-  );
-};
+    Alert.alert(
+      "Check-Out Confirmation",
+      message,
+      [
+        { text: "No", style: "cancel" },
+        { text: "Yes", onPress: onConfirm } // Jab user Yes dabayega toh onConfirm chalega
+      ],
+      { cancelable: true }
+    );
+  };
 
   const handleCheckOut = async () => {
     showCheckoutAlert(async () => {
-    Geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const headers = await getAuthHeaders();
-        if (!headers) return;
+      Geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const headers = await getAuthHeaders();
+          if (!headers) return;
 
-        try {
-          const response = await fetch(`${BaseUrl}/attendance/checkout`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-              latitude: String(latitude),
-              longitude: String(longitude),
-              deviceTimestamp: new Date().toISOString(),
-            }),
-          });
-
-          const result = await response.json();
-
-          // 🔥 ADD THIS BLOCK (IMPORTANT)
-
-          if (!result.success && result?.error?.statusCode === 403) {
-            // 🔥 Toast show
-            ToastAndroid.show(
-              "Session expired, please login again",
-              ToastAndroid.SHORT
-            );
-
-            await AsyncStorage.removeItem("authToken");
-
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Login" }],
+          try {
+            const response = await fetch(`${BaseUrl}/attendance/checkout`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({
+                latitude: String(latitude),
+                longitude: String(longitude),
+                deviceTimestamp: new Date().toISOString(),
+              }),
             });
 
-            return;
-          }
+            const result = await response.json();
 
-          if (response.ok && result.success) {
-            await performLocalCheckout();
-            showToast('Checked-Out Successfully!');
-          } else {
-            showToast(result.message || 'Check-Out Failed');
+            // 🔥 ADD THIS BLOCK (IMPORTANT)
+
+            if (!result.success && result?.error?.statusCode === 403) {
+              // 🔥 Toast show
+              ToastAndroid.show(
+                "Session expired, please login again",
+                ToastAndroid.SHORT
+              );
+
+              await AsyncStorage.removeItem("authToken");
+
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+
+              return;
+            }
+
+            if (response.ok && result.success) {
+              await performLocalCheckout();
+              showToast('Checked-Out Successfully!');
+            } else {
+              showToast(result.message || 'Check-Out Failed');
+            }
+          } catch {
+            showToast('Network Error');
           }
-        } catch {
-          showToast('Network Error');
-        }
-      },
-      () => showToast('Please enable GPS'),
-      { enableHighAccuracy: true }
-    );
-  })
+        },
+        () => showToast('Please enable GPS'),
+        { enableHighAccuracy: true }
+      );
+    })
   };
 
   const performLocalCheckout = async () => {
@@ -555,9 +554,9 @@ const Home = () => {
 
   // get name function profile Api 
 
-useEffect(() => {
-  fetchAndStoreName();
-}, []);
+  useEffect(() => {
+    fetchAndStoreName();
+  }, []);
 
 
 
@@ -576,28 +575,28 @@ useEffect(() => {
       });
 
       const json = await response.json();
-       if (!json.success && json?.error?.statusCode === 403) {
-            // 🔥 Toast show
-            ToastAndroid.show(
-              "Session expired, please login again",
-              ToastAndroid.SHORT
-            );
+      if (!json.success && json?.error?.statusCode === 403) {
+        // 🔥 Toast show
+        ToastAndroid.show(
+          "Session expired, please login again",
+          ToastAndroid.SHORT
+        );
 
-            await AsyncStorage.removeItem("authToken");
+        await AsyncStorage.removeItem("authToken");
 
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Login" }],
-            });
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
 
-            return;
-          }
+        return;
+      }
 
 
       if (response.ok && json?.success && json?.data) {
         const name = json.data.full_name || json.data.name;
-         const profileImage = json.data.profile;
-        console.log("Fetched Name:", name,profileImage);
+        const profileImage = json.data.profile;
+        console.log("Fetched Name:", name, profileImage);
         setUserName(name); // State update
         setProfileImage(profileImage);
       }
@@ -612,34 +611,38 @@ useEffect(() => {
   // ============================================
   return (
     <View style={{ flex: 1, backgroundColor: "#1FA2FF" }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#1FA2FF" />
+      <StatusBar barStyle="dark-content" />
 
       <View style={styles.container}>
-        <LinearGradient
-          colors={['#1FA2FF', '#1FA2FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <TouchableOpacity activeOpacity={0.7}  onPress={()=>navigation.navigate("Profile")} style={styles.headerRow}>
+        <View style={styles.header}>
+          <View style={styles.headerRow2}>
+           
+             <Image
+                    source={require("../img/WorkTracklogo.png")}
+                    style={{ height: 50, width:80, resizeMode: 'contain' }}
+                  />
+          </View>
+
+          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate("Profile")} style={styles.headerRow}>
             <View style={{ marginTop: 10 }}>
-            {
-              profileImage?<Image
+              <Text style={styles.greeting}>{userName} </Text>
+            </View>
+
+            <View style={{ marginTop: 10 }}>
+              {
+                profileImage ? <Image
                   style={styles.profilePicture}
                   source={{ uri: (String(profileImage).startsWith('http') ? profileImage : `${ImgUrl}/${String(profileImage).replace(/^\/+/, '')}`) }}
-                />:
-                 <Image
-                source={require("../img/logo.png")}
-                style={{ height: 30, width: 40, resizeMode: 'contain' }}
-              />
-            }
-             
+                /> :
+                  <Image
+                    source={require("../img/WorkTracklogo.png")}
+                    style={{ height: 30, width: 30, resizeMode: 'contain' }}
+                  />
+              }
             </View>
-            <View style={{ marginTop: 10 }}>
-              <Text style={styles.greeting}>{userName}</Text>
-            </View>
+
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -647,11 +650,14 @@ useEffect(() => {
         >
           {/* Time Card */}
           <LinearGradient
-            colors={['#1FA2FF', '#12D8FA']}
+            colors={['#1A4B7C', '#0097A7', '#4CAF50']}
             style={styles.timeCard}
+            // Diagonal gradient professional lagta hai
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
             <View style={styles.timeHeader}>
-              <Image source={require("../img/time.png")} style={{ height: 20, width: 20 }} tintColor="#fff" />
+              <Image source={require("../img/time.png")} style={{ height: 20, width: 20, marginTop: 3 }} tintColor="#fff" />
               <Text style={styles.timeLabel}>Current Time</Text>
             </View>
             <View style={styles.timeBody}>
@@ -735,22 +741,38 @@ useEffect(() => {
             </View> */}
 
             <View style={styles.actionGrid}>
-              <TouchableOpacity onPress={() => navigation.navigate("DaliySafer")} style={[styles.actionCard, { backgroundColor: "#DBEAFE" }]}>
-                <Image source={require("../img/marker.png")} style={{ height: 30, width: 30 }} tintColor={"#3B82F6"} />
-                <Text style={[styles.actionText, { color: "#3B82F6" }]}>Daily Safar</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("DaliySafer")} activeOpacity={0.8} style={styles.cardContainer}>
+                <LinearGradient colors={['#1A4B7C', '#2C5E8F']} style={styles.actionCard}>
+                  <View style={styles.iconCircle}>
+                    <Image source={require("../img/marker.png")} style={styles.cardIcon} tintColor={"#fff"} />
+                  </View>
+                  <Text style={styles.actionText}>Daily Safar</Text>
+                </LinearGradient>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate("Salary")} style={[styles.actionCard, { backgroundColor: "#F3E8FF" }]}>
-                <Image source={require("../img/rupee.png")} style={{ height: 30, width: 30 }} tintColor={"#A855F7"} />
-                <Text style={[styles.actionText, { color: "#A855F7" }]}>My Claims</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Claims")} activeOpacity={0.8} style={styles.cardContainer}>
+                <LinearGradient colors={['#4CAF50', '#66BB6A']} style={styles.actionCard}>
+                  <View style={styles.iconCircle}>
+                    <Image source={require("../img/salary.png")} style={styles.cardIcon} tintColor={"#fff"} />
+                  </View>
+                  <Text style={styles.actionText}>My Claims</Text>
+                </LinearGradient>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate("MyVisitsScreen")} style={[styles.actionCard, { backgroundColor: "#E0F2FE" }]}>
-                <Image source={require("../img/visitor.png")} style={{ height: 30, width: 30 }} tintColor={"#06B6D4"} />
-                <Text style={[styles.actionText, { color: "#06B6D4" }]}>My Visits</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("MyVisitsScreen")} activeOpacity={0.8} style={styles.cardContainer}>
+                <LinearGradient colors={['#0097A7', '#00ACC1']} style={styles.actionCard}>
+                  <View style={styles.iconCircle}>
+                    <Image source={require("../img/visitor.png")} style={styles.cardIcon} tintColor={"#fff"} />
+                  </View>
+                  <Text style={styles.actionText}>My Visits</Text>
+                </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => navigation.navigate("Attendance")} style={[styles.actionCard, { backgroundColor: "#FFF7ED" }]}>
-                <Image source={require("../img/briefcase.png")} style={{ height: 30, width: 30 }} tintColor={"#FF8C00"} />
-                <Text style={[styles.actionText, { color: "#FF8C00" }]}>Attendance</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Attendance")} activeOpacity={0.8} style={styles.cardContainer}>
+                <LinearGradient colors={['#2196F3', '#42A5F5']} style={styles.actionCard}>
+                  <View style={styles.iconCircle}>
+                    <Image source={require("../img/briefcase.png")} style={styles.cardIcon} tintColor={"#fff"} />
+                  </View>
+                  <Text style={styles.actionText}>Attendance</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -763,35 +785,3 @@ useEffect(() => {
 
 export default Home;
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", },
-  header: { marginBottom: 10, paddingHorizontal: 20, paddingBottom: 10 },
-  headerRow: { flexDirection: 'row', gap: 10, alignItems: "center", },
-  greeting: { fontSize: 18, fontWeight: "700", color: "#fff" },
-  profilePicture: { width: 40, height: 40, borderRadius: 40, alignSelf: 'center', borderWidth: 1, borderColor: '#F3F4F6', overflow: "hidden", },
-  timeCard: { backgroundColor: "#3B82F6", borderRadius: 12, padding: 20, marginTop: 10, marginHorizontal: 15, elevation: 3 },
-  timeHeader: { flexDirection: "row", alignItems: "center" },
-  timeLabel: { color: "#fff", fontSize: 18, fontWeight: "700", marginLeft: 4 },
-  timeBody: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
-  timeContainer: { flex: 1 },
-  time: { color: "#fff", fontSize: 24, fontWeight: "700" },
-  date: { color: "#E0F2FE", fontSize: 14, marginTop: 4 },
-  locationCard: { backgroundColor: "#E6FBF3", borderColor: "#A7F3D0", borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", marginTop: 20, marginHorizontal: 16 },
-  locationText: { color: "#065F46", fontWeight: "600", fontSize: 14, marginLeft: 12, flex: 1 },
-  locationDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981", marginLeft: 10 },
-  mapContainer: { height: 200, marginTop: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: '#E0E0E0', elevation: 2, marginHorizontal: 16 },
-  map: { ...StyleSheet.absoluteFillObject },
-  checkContainer: { marginTop: 20, alignItems: "center", backgroundColor: "#989090ff", elevation: 1, padding: 20, borderRadius: 12, marginHorizontal: 16 },
-  checkStatusText: { fontWeight: "700", fontSize: 16 },
-  checkButtonRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  checkButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 30, width: "48%", elevation: 2 },
-  checkinText: { color: "#fff", fontWeight: "700", marginLeft: 8, fontSize: 13 },
-  quickActions: { marginTop: 25, marginBottom: 40, marginHorizontal: 16 },
-  quickTitle: { fontSize: 18, fontWeight: "700", color: "#111827", marginBottom: 12 },
-  actionGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 8 },
-  controlButton: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginHorizontal: 6 },
-  controlText: { color: '#fff', fontWeight: '700' },
-  actionCard: { width: "48%", borderRadius: 10, padding: 20, alignItems: "center", justifyContent: "center", marginBottom: 10, minHeight: 100, elevation: 1 },
-  actionText: { fontWeight: "600", fontSize: 15 }
-});

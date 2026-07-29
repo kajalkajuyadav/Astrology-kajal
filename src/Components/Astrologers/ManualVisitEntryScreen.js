@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   cameraBtn: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: "#1A4B7C",
     padding: 12,
     borderRadius: 8,
     marginTop: 5,

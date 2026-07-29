@@ -5,13 +5,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HomeTabs } from './TabNavigator'; // Import the Tab Navigator
-import LeaveApply from '././src/Components/Bookings/LeaveApply'
+import LeaveApply from './src/Components/Leave/LeaveApply'
 import Login from './src/Components/Auth/Login';
 import DaliyClaim from './src/Components/Home/DaliyClaim'
 import DaliySafer from './src/Components/Home/DaliySafer';
 import Attendance from './src/Components/Home/Attendance';
 import MyVisitsScreen from './src/Components/Astrologers/Astrologers';
-import SalerySelf from './src/Components/Bookings/SalerySelf';
+import SalerySelf from './src/Components/Profile/SalerySelf';
+import PrivacyPolicy from './src/Components/Auth/PrivacyPolicy';
+import TermsOfService from './src/Components/Auth/TermsOfService';
+import splash from './src/Components/Auth/splash'
+import OnboardingScreen from './src/Components/Auth/OnboardingScreen ';
 const Stack = createNativeStackNavigator();
 
 export default function RootStack() {
@@ -24,7 +28,7 @@ export default function RootStack() {
         if (token) {
           setInitialRoute('HomeTabs');
         } else {
-          setInitialRoute('Login');
+          setInitialRoute('Splash');
         }
       } catch (e) {
         console.warn('Error reading auth token', e);
@@ -49,18 +53,37 @@ export default function RootStack() {
       <Stack.Navigator initialRouteName={initialRoute}>
         {/* Login screen */}
         <Stack.Screen
+          name="PrivacyPolicy"
+          component={PrivacyPolicy}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="TermsOfService"
+          component={TermsOfService}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Splash"
+          component={splash}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="Login"
           component={Login}
           options={{ headerShown: false }}
         />
-
         {/* Main tab navigator - contains all the main screens */}
         <Stack.Screen
           name="HomeTabs"
           component={HomeTabs}
           options={{ headerShown: false }}
         />
-
+        <Stack.Screen
+          name="OnboardingScreen"
+          component={OnboardingScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="LeaveApply"
           component={LeaveApply}
@@ -71,22 +94,22 @@ export default function RootStack() {
           component={DaliyClaim}
           options={{ headerShown: false }}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="DaliySafer"
           component={DaliySafer}
           options={{ headerShown: false }}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="Attendance"
           component={Attendance}
           options={{ headerShown: false }}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="MyVisitsScreen"
           component={MyVisitsScreen}
           options={{ headerShown: false }}
         />
-           <Stack.Screen
+        <Stack.Screen
           name="SalerySelf"
           component={SalerySelf}
           options={{ headerShown: false }}
@@ -94,4 +117,10 @@ export default function RootStack() {
       </Stack.Navigator>
     </NavigationContainer>
   );
+
+
+
+
 }
+
+

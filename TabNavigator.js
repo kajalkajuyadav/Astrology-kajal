@@ -1,9 +1,10 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Image, StyleSheet } from 'react-native';
 import Home from './src/Components/Home/Home';
-import Horoscope from './src/Components/Horoscope/Horoscope';
-import Bookings from './src/Components/Bookings/Bookings';
-import LeaveManagementScreen from './src/Components/Bookings/LeaveApply';
+import LeaveManagementScreen from './src/Components/Leave/LeaveApply';
+import Profile from './src/Components/Profile/Profile';
+import Claims from './src/Components/Claims/Claims';
+import MyVisitsScreen from './src/Components/Astrologers/Astrologers';
 
 const Tab = createBottomTabNavigator();
 
@@ -23,7 +24,7 @@ export function HomeTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: 'blue', // <-- Badal kar ORANGE kar diya
+        tabBarActiveTintColor: '#1A4B7C', // <-- Badal kar ORANGE kar diya
         tabBarInactiveTintColor: '#9CA3AF', // Gray color for inactive tab
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -61,12 +62,12 @@ export function HomeTabs() {
         }}
       />
       <Tab.Screen 
-        name="Claims" 
-        component={Horoscope}
+        name="Visits" 
+        component={MyVisitsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon 
-              source={require('./src/Components/img/salary.png')} 
+              source={require('./src/Components/img/visitor.png')} 
               focused={focused} 
             />
           ),
@@ -86,7 +87,7 @@ export function HomeTabs() {
       />
       <Tab.Screen 
         name="Profile" 
-        component={Bookings}
+        component={Profile}
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon 
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   tabIconFocused: {
-    tintColor: 'blue', // <-- Badal kar ORANGE kar diya
+    tintColor: '#1A4B7C', // <-- Badal kar ORANGE kar diya
   },
   tabIconUnfocused: {
     tintColor: '#9CA3AF',

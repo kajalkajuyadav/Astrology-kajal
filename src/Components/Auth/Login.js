@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Image,
   BackHandler,
+  StatusBar,
 } from "react-native";
 // import AsyncStorage from "@react-native-async-storage/async-storage"; // No longer needed here
 // import BaseUrl from "../../url/env"; // No longer needed here
@@ -24,7 +25,7 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-
+  const [isChecked, setIsChecked] = useState(false)
 
 
 useFocusEffect(
@@ -66,6 +67,11 @@ useFocusEffect(
       showToast("Password is required.");
       return;
     }
+
+    if (!isChecked) {
+      showToast("Please accept Terms and Privacy Policy to continue.");
+      return;
+    }
     // ------------------------
 
     setLoading(true);
@@ -94,6 +100,8 @@ useFocusEffect(
   return (
     // ... (Your UI rendering code remains the same) ...
     <View style={styles.safeArea}>
+        <StatusBar barStyle={'dark-content'} />
+    
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -149,9 +157,36 @@ useFocusEffect(
                 </TouchableOpacity>
               </View>
             </View>
+            <View style={styles.footerLinks}>
+              <TouchableOpacity 
+                activeOpacity={0.8} 
+                style={[styles.checkbox, isChecked && styles.checkboxActive]} 
+                onPress={() => setIsChecked(!isChecked)}
+              >
+                {isChecked && (
+                  <Image source={require("../img/check.png")} style={styles.checkboxImage}/>
+                )}
+              </TouchableOpacity>
+              
+              <View style={styles.textContainer}>
+                <Text style={styles.footerText}>By logging in, you agree to our </Text>
+                <View style={styles.linkRow}>
+                  <TouchableOpacity onPress={() => navigation.navigate("TermsOfService")}>
+                    <Text style={styles.linkText}>Terms of Service</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.footerText}> & </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate("PrivacyPolicy")}>
+                    <Text style={styles.linkText}>Privacy Policy</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
 
             <TouchableOpacity
-              style={[styles.button, loading && { opacity: 0.8 }]}
+              style={[
+                styles.button, 
+                (loading || !isChecked) && { opacity: 0.7 } // Checkbox nahi hai toh thoda dull dikhega
+              ]}
               onPress={handleLogin}
               disabled={loading}
             >
@@ -161,6 +196,9 @@ useFocusEffect(
                 <Text style={styles.buttonText}>LOGIN</Text>
               )}
             </TouchableOpacity>
+
+           
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -241,7 +279,7 @@ const styles = StyleSheet.create({
       },
       button: {
         marginTop: 8,
-        backgroundColor: "#3B82F6",
+        backgroundColor: "#1A4B7C",
         paddingVertical: 12,
         borderRadius: 999,
         alignItems: "center",
@@ -252,4 +290,46 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 15,
       },
+    footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'flex-start', // Start se align taki multi-line text ke sath sahi dikhe
+    marginVertical: 10,
+    paddingRight: 10,
+  },
+ checkbox: {
+    height: 20,
+    width: 20,
+    borderWidth: 1,
+    borderColor: '#1A4B7C',
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 2, // Text ke sath center karne ke liye
+    marginRight: 10,
+  },
+ checkboxActive: {
+    backgroundColor: '#E8F0FE', // Click hone par halka color
+  },
+  checkboxImage: {
+    width: 14,
+    height: 14,
+    tintColor: '#1A4B7C' // Check icon ka color
+  },
+  textContainer: {
+    flex: 1, // Baki bachi hui jagah text le lega
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  linkRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  linkText: {
+    fontSize: 12,
+    color: '#1A4B7C',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
 });

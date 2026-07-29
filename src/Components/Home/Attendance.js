@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TouchableOpacity, 
-  FlatList, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  FlatList,
   ActivityIndicator,
   SafeAreaView,
   Alert,
   RefreshControl,
-  Image, 
+  Image,
   StatusBar,
   ToastAndroid
 } from 'react-native';
@@ -22,7 +22,7 @@ const AttendanceReport = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   const [summary, setSummary] = useState({
     present: 0,
     absent: 0,
@@ -37,7 +37,7 @@ const AttendanceReport = () => {
     const today = new Date();
     // Agar Current View ka Month aur Year aaj ke Month aur Year ke barabar hai
     return (
-      currentDate.getMonth() === today.getMonth() && 
+      currentDate.getMonth() === today.getMonth() &&
       currentDate.getFullYear() === today.getFullYear()
     );
   };
@@ -45,10 +45,10 @@ const AttendanceReport = () => {
   const formatTime = (isoString) => {
     if (!isoString) return '--:--';
     const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: true 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
     });
   };
 
@@ -74,52 +74,52 @@ const AttendanceReport = () => {
       const response = await fetch(API_URL, requestOptions);
       const result = await response.json();
 
-if (!result.success && result?.error?.statusCode === 403) {
-  // 🔥 Toast show
-  ToastAndroid.show(
-    "Session expired, please login again",
-    ToastAndroid.SHORT
-  );
+      if (!result.success && result?.error?.statusCode === 403) {
+        // 🔥 Toast show
+        ToastAndroid.show(
+          "Session expired, please login again",
+          ToastAndroid.SHORT
+        );
 
-  await AsyncStorage.removeItem("authToken");
+        await AsyncStorage.removeItem("authToken");
 
-  navigation.reset({
-    index: 0,
-    routes: [{ name: "Login" }],
-  });
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
 
-  return;
-}
+        return;
+      }
       console.log("Attendance Data:", result);
 
       if (result.success === true) {
         const apiData = Array.isArray(result.data) ? result.data : [];
 
         const formattedLogs = apiData.map(item => ({
-            id: item._id,
-            date: item.date,
-            status: item.checkInTime ? 'Present' : 'Absent', 
-            timeIn: formatTime(item.checkInTime),
-            timeOut: formatTime(item.checkOutTime),
+          id: item._id,
+          date: item.date,
+          status: item.checkInTime ? 'Present' : 'Absent',
+          timeIn: formatTime(item.checkInTime),
+          timeOut: formatTime(item.checkOutTime),
         }));
 
         setLogs(formattedLogs);
 
         const presentCount = formattedLogs.filter(l => l.status === 'Present').length;
         const absentCount = formattedLogs.filter(l => l.status === 'Absent').length;
-        
+
         setSummary({
-            present: presentCount,
-            absent: absentCount,
-            leaves: 0,
-            holidays: 0
+          present: presentCount,
+          absent: absentCount,
+          leaves: 0,
+          holidays: 0
         });
 
       } else {
         if (result.error && result.error.statusCode === 403) {
-            Alert.alert("Session Expired", "Please login again.");
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-            return;
+          Alert.alert("Session Expired", "Please login again.");
+          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          return;
         }
       }
     } catch (error) {
@@ -146,25 +146,25 @@ if (!result.success && result?.error?.statusCode === 403) {
   };
 
   const getStatusColor = (status) => {
-    if (status === 'Present') return '#4CAF50'; 
-    if (status === 'Absent') return '#F44336';  
-    return '#757575'; 
+    if (status === 'Present') return '#4CAF50';
+    if (status === 'Absent') return '#F44336';
+    return '#757575';
   };
 
   const renderItem = ({ item }) => (
     <View style={styles.logCard}>
       <View style={styles.dateBox}>
         <Text style={styles.dateText}>
-            {new Date(item.date).getDate()}
+          {new Date(item.date).getDate()}
         </Text>
         <Text style={styles.monthText}>
-            {new Date(item.date).toLocaleString('default', { month: 'short' })}
+          {new Date(item.date).toLocaleString('default', { month: 'short' })}
         </Text>
       </View>
-      
+
       <View style={styles.logDetails}>
         <Text style={[styles.logStatus, { color: getStatusColor(item.status) }]}>
-            {item.status}
+          {item.status}
         </Text>
         <Text style={styles.logTime}>In: {item.timeIn} • Out: {item.timeOut}</Text>
       </View>
@@ -175,40 +175,40 @@ if (!result.success && result?.error?.statusCode === 403) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle={"dark-content"} backgroundColor="#1FA2FF" />
+      <StatusBar barStyle={"dark-content"} backgroundColor="#1FA2FF" />
 
       {/* Header */}
-    
+
 
       <View style={styles.container}>
-          <View style={styles.customHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Image 
-                source={require('../img/arrowback.png')} 
-                style={styles.backIcon} 
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Image
+              source={require('../img/arrowback.png')}
+              style={styles.backIcon}
             />
-        </TouchableOpacity>
-        <Text style={styles.screenTitle}>Attendance Report</Text>
-      </View>
+          </TouchableOpacity>
+          <Text style={styles.screenTitle}>Attendance Report</Text>
+        </View>
         {/* Month Selector */}
         <View style={styles.monthSelector}>
           <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navBtn}>
             <Text style={styles.arrowText}>{'<'}</Text>
           </TouchableOpacity>
-          
+
           <Text style={styles.headerTitle}>
             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </Text>
-          
+
           {/* --- Logic Applied Here --- */}
-          <TouchableOpacity 
-            onPress={() => changeMonth(1)} 
+          <TouchableOpacity
+            onPress={() => changeMonth(1)}
             style={styles.navBtn}
             disabled={isNextDisabled()} // Click band kar diya
           >
             {/* Color fade kar diya agar disabled hai */}
             <Text style={[styles.arrowText, { opacity: isNextDisabled() ? 0.3 : 1 }]}>
-                {'>'}
+              {'>'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -239,7 +239,7 @@ if (!result.success && result?.error?.statusCode === 403) {
         {/* List */}
         <View style={styles.listContainer}>
           <Text style={styles.listHeader}>Daily History</Text>
-          
+
           {loading && !refreshing ? (
             <ActivityIndicator size="large" color="#007BFF" style={{ marginTop: 20 }} />
           ) : (
@@ -252,7 +252,7 @@ if (!result.success && result?.error?.statusCode === 403) {
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#007BFF']} />
               }
-              ListEmptyComponent={<Text style={{textAlign:'center', marginTop:20, color:'#888'}}>No records found</Text>}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20, color: '#888' }}>No records found</Text>}
             />
           )}
         </View>
@@ -270,23 +270,23 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical:10
+    paddingVertical: 10
   },
   backButton: { padding: 5, marginRight: 15 },
   backIcon: { width: 24, height: 24, resizeMode: 'contain' },
   screenTitle: { fontSize: 20, fontWeight: '700', color: '#333' },
   container: { flex: 1, backgroundColor: '#F5F7FA' },
-  monthSelector: { 
-    backgroundColor: '#007BFF', 
-    paddingVertical: 15, 
-    paddingHorizontal: 20, 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
+  monthSelector: {
+    backgroundColor: '#1A4B7C',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 10,
     borderRadius: 15,
     marginHorizontal: 16,
-    elevation: 5 
+    elevation: 5
   },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   navBtn: { padding: 5 },
@@ -299,16 +299,16 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, color: '#888', marginTop: 4 },
   listContainer: { flex: 1, paddingHorizontal: 16 },
   listHeader: { fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  logCard: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 15, 
-    marginBottom: 12, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  logCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     elevation: 2,
-    position: 'relative', 
-    overflow: 'hidden'    
+    position: 'relative',
+    overflow: 'hidden'
   },
   dateBox: { backgroundColor: '#F0F4F8', borderRadius: 8, padding: 10, alignItems: 'center', width: 60 },
   dateText: { fontSize: 18, fontWeight: 'bold', color: '#333' },
@@ -316,12 +316,12 @@ const styles = StyleSheet.create({
   logDetails: { flex: 1, marginLeft: 15 },
   logStatus: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   logTime: { fontSize: 12, color: '#888' },
-  statusIndicator: { 
-    position: 'absolute', 
-    right: 0,             
+  statusIndicator: {
+    position: 'absolute',
+    right: 0,
     top: 0,
-    bottom: 0,            
-    width: 6,             
+    bottom: 0,
+    width: 6,
     height: '100',
   },
 });

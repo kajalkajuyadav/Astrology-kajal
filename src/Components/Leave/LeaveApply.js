@@ -346,7 +346,7 @@ const navigation = useNavigation();
           <Text style={styles.listTitle}>
             {filterStatus === "All" ? "All Requests" : `${filterStatus} Requests`}
           </Text>
-          <LinearGradient colors={['#1FA2FF', '#12D8FA']}
+          <LinearGradient colors={['#1A4B7C', '#4CAF50']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{ borderRadius: 8 }}
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 11, color: "#6B7280", fontWeight: '500' },
   filterRow: { flexDirection: "row", justifyContent: "flex-start", marginBottom: 15, gap: 8 },
   filterBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: "#E5E7EB" },
-  filterBtnActive: { backgroundColor: "#3B82F6" },
+  filterBtnActive: { backgroundColor: "#1A4B7C" },
   filterBtnText: { color: "#374151", fontWeight: "600", fontSize: 13 },
   filterBtnTextActive: { color: "#fff", fontWeight: "700" },
   listHeader: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 10, alignItems: 'center', marginBottom: 5 },
@@ -483,6 +483,6 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: "700", color: "#1F2937" },
   input: { backgroundColor: "#F3F4F6", padding: 14, borderRadius: 12, marginBottom: 15, color: '#1F2937' },
   multilineInput: { height: 100, textAlignVertical: "top" },
-  submitButton: { backgroundColor: "#3B82F6", padding: 16, borderRadius: 12, alignItems: "center", marginTop: 10, marginBottom: 20 },
+  submitButton: { backgroundColor: "#1A4B7C", padding: 16, borderRadius: 12, alignItems: "center", marginTop: 10, marginBottom: 20 },
   submitButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });

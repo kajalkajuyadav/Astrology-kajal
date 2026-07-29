@@ -334,7 +334,7 @@ if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
         val batteryPending = PendingIntent.getActivity(this, 1, batteryIntent, pendingIntentFlag)
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Canx HRMS")
+            .setContentTitle("WorkTrack 360 HRMS")
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(pendingIntent)

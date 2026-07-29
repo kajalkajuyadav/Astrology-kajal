@@ -112,7 +112,7 @@ const Offline = () => {
           style={styles.dateBtn}
           onPress={() => setShowDatePicker(true)}
         >
-          <Image source={require("../img/bookings.png")} style={{height:16,width:16}} tintColor={"#2563EB"}/>
+          <Image source={require("../img/bookings.png")} style={{height:16,width:16}} tintColor={"#1A4B7C"}/>
           <Text style={styles.dateText}>
             {formatDateForApi(selectedDate)}
           </Text>
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
 
   dateText: {
     marginLeft: 6,
-    color: "#1A73E8",
+    color: "#1A4B7C",
     fontWeight: "600",
   },
 
